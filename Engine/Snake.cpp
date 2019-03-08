@@ -1,34 +1,39 @@
 #include "Snake.h"
 
-Snake::Snake()
+Snake::Snake(int _startX, int _startY)
+	:
+	startXCoord(_startX),
+	startYCoord(_startY)
 {
-	InitializeSnake();	
+
 }
 
-void Snake::move(Board & _b)
+/*************Public Functions***************/
+void Snake::InitializeSnake()
 {
-	if (checkCollision())
+	lastBodyIndex = 0;
+	head = { startXCoord, startYCoord, Color{ 205, 225, 34 } };
+	InitializeBody(startXCoord, startYCoord + 1);
+	tail = { startXCoord, body[lastBodyIndex].yCoord + 1,{ 0, 96, 0 } };
+}
+
+void Snake::move()
+{
+	tail.xCoord = body[lastBodyIndex].xCoord;
+	tail.yCoord = body[lastBodyIndex].yCoord;
+
+	for (int i = lastBodyIndex; i > 0; i--)
 	{
-		deactivateSnake(_b);
-
-		tail.xCoord = body[lastBodyIndex].xCoord;
-		tail.yCoord = body[lastBodyIndex].yCoord;
-		for (int i = lastBodyIndex; i > 0; i--)
-		{
-			body[i].xCoord = body[i - 1].xCoord;
-			body[i].yCoord = body[i - 1].yCoord;
-		}
-
-		body[0].xCoord = head.xCoord;
-		body[0].yCoord = head.yCoord;
-
-		head.xCoord += velocity.x;
-		head.yCoord += velocity.y;
-
-		activateSnake(_b);
+		body[i].xCoord = body[i - 1].xCoord;
+		body[i].yCoord = body[i - 1].yCoord;
 	}
-}
 
+	body[0].xCoord = head.xCoord;
+	body[0].yCoord = head.yCoord;
+
+	head.xCoord += velocity.x;
+	head.yCoord += velocity.y;
+}
 void Snake::setDirection(const int dir)
 {
 	int movingTo = dir;
@@ -58,25 +63,36 @@ void Snake::setDirection(const int dir)
 		break;
 	}	
 }
-
-int Snake::getDirection()
+int Snake::getDirection() const 
 {
 	return movDirection;
 }
-
-void Snake::setSnakeOnBoard(Board & _b)
+int Snake::getSnkLenght() const
 {
-	activateSnake(_b);
+	return lastBodyIndex;
 }
 
-void Snake::InitializeSnake()
+void Snake::grow()
 {
-	lastBodyIndex = 0;
-	head = { startXCoord, startYCoord, Color{205, 225, 34} };
-	InitializeBody(startXCoord, startYCoord + 1);	
-	tail = { startXCoord, body[0].yCoord + 1, { 0, 96, 0} };
+	lastBodyIndex++;
 }
 
+Snake::Segment Snake::getHead() const
+{
+	return head;
+}
+Snake::Segment Snake::getTail() const
+{
+	return tail;
+}
+
+Snake::Vector Snake::getVelocity() const
+{
+	return velocity;
+}
+
+
+/*************Private Functions***************/
 void Snake::InitializeBody(const int _xCoord, const int _yCoord)
 {	
 	int nx = _xCoord, ny = _yCoord;
@@ -84,51 +100,12 @@ void Snake::InitializeBody(const int _xCoord, const int _yCoord)
 	{		
 		if (i <= lastBodyIndex) {			
 			body[i] = { nx, ny, bodyColors[i % 5] };
-			ny++;
+			ny += 1.0f;
 		}
 		else body[i] = { offBoard, offBoard, bodyColors[i % 5] };
 	}
 }
 
-void Snake::activateSnake(Board & _b) const
-{
-	_b.activateCell(head.xCoord, head.yCoord, head.c);
-	for (int i = 0; i <= lastBodyIndex; i++)
-	{
-		_b.activateCell(body[i].xCoord, body[i].yCoord, body[i].c);
-	}
-	_b.activateCell(tail.xCoord, tail.yCoord, tail.c);
-}
 
-void Snake::deactivateSnake(Board & _b) const
-{
-	_b.deactivateCell(head.xCoord, head.yCoord);
-	for (int i = 0; i < lastBodyIndex; i++) {
-		_b.deactivateCell(body[i].xCoord, body[i].yCoord);
-	}
-	_b.deactivateCell(tail.xCoord, tail.yCoord);
-}
 
-bool Snake::checkCollision() const
-{
-	const int nextX = head.xCoord + velocity.x;
-	const int nextY = head.yCoord + velocity.y;
-	bool collidedWithBody = false;
-	for (int i = 0; i < lastBodyIndex; i++)
-	{
-		if (nextX == body[i].xCoord && nextY == body[i].yCoord)
-		{
-			collidedWithBody = true;
-			break;
-		}
-	}
-	if (!collidedWithBody)
-	{
-		if (nextX == tail.xCoord && nextY == tail.yCoord)
-		{
-			collidedWithBody = true;
-		}
-	}
 
-	return (nextX < BOARD_N_COLS && nextX >= 0) && (nextY < BOARD_N_LINS && nextY >= 0) && !collidedWithBody;
-}

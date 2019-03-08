@@ -1,19 +1,19 @@
 #pragma once
 
-#include "Board.h"
+#include "Colors.h"
 
-#define SNAKE_MAX_SIZE BOARD_N_CELLS
+#define SNAKE_MAX_SIZE 1536
 #define SNAKE_MOVING_UP 0
 #define SNAKE_MOVING_DOWN 1
 #define SNAKE_MOVING_LEFT 2
 #define SNAKE_MOVING_RIGHT 3
 
-
 class Snake {
+public:
 	struct Segment{
 		int xCoord;
 		int yCoord;
-		Color c;
+		Color color;
 	};
 
 	struct Vector {
@@ -21,25 +21,35 @@ class Snake {
 		int y;
 	};
 
+	Segment body[SNAKE_MAX_SIZE]; //Array contendo o corpo da Serpente
+
 public:
-	Snake();
+	Snake(int _startX, int _startY);
 
 	//Move a Serpente pelo Tabuleiro
-	void move(Board & _b);
+	void move();
 
 	//Define a direção que a Serpente ira se mover (up / down / left / right)
 	void setDirection(const int dir);
 
 	//Retorna a direção em que a Serpente e está se movendo (up / down / left / right)
-	int getDirection();
+	int getDirection() const;
 
-	//Coloca a serpente posicionada dentro do Tabuleiro
-	void setSnakeOnBoard(Board & _b);
+	//Retorna o compirmento da Serpente
+	int getSnkLenght() const;
 
-private:
-	Segment head; //Cabeça da Serpente
-	Segment body[SNAKE_MAX_SIZE]; //Array contendo o corpo da Serpente
-	Segment tail; // Rabo da Serpente
+	void grow();
+
+	//Inicializa os Segmentos da Serpente
+	void InitializeSnake();	
+	
+	Segment getHead() const;
+	Segment getTail() const;
+	Vector getVelocity() const;
+
+private:	
+	Segment head; //Cabeça da Serpente	
+	Segment tail; // Rabo da Serpente	
 
 	//Cores do corpo da Serpente
 	Color bodyColors[5] = {
@@ -52,25 +62,12 @@ private:
 
 	Vector velocity = { 0,-1 };
 	
-	const int startXCoord = (BOARD_N_COLS / 2); //Cordenada X inicial. Posição da cabeça da serpente
-	const int startYCoord = (BOARD_N_LINS / 2); //Cordenada Y inicial. Posição da cabeça da serpente
+	const int startXCoord; //Cordenada X inicial. Posição da cabeça da serpente
+	const int startYCoord; //Cordenada Y inicial. Posição da cabeça da serpente
 	int lastBodyIndex; //Tamanho do corpo da Serpente
 	int movDirection = SNAKE_MOVING_UP; //Direção em que a Serpente esta se movendo
-	const int offBoard = -10; //posição dos segmentos não fazem parte da Serpente
-
-
-	//Inicializa os Segmentos da Serpente
-	void InitializeSnake();
+	const int offBoard = -10; //posição dos segmentos não fazem parte da Serpente	
 
 	//Inicializa os Segmentos do Corpo 
 	void InitializeBody(const int xCoord, const int yCoord);
-
-	//Ativa a serpente no tabuleiro para ser desenhada.
-	void activateSnake(Board & _b) const;
-
-	//Desativa a serpente no tabuleiro para ser desenhada.
-	void deactivateSnake(Board & _b) const;
-
-	//Verifica colisão com paredes ou corpo;
-	bool checkCollision() const;
 };
