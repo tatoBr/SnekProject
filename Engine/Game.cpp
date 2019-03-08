@@ -24,8 +24,12 @@
 Game::Game( MainWindow& wnd )
 	:
 	wnd( wnd ),
-	gfx( wnd )
-{
+	gfx( wnd ),
+	board( 640, (640 * BOARD_N_LINS) / BOARD_N_COLS),
+	snake(BOARD_N_COLS/2, BOARD_N_LINS / 2)
+{	
+	snake.InitializeSnake();
+	board.setSnakeOnBoard(snake);
 }
 
 void Game::Go()
@@ -38,8 +42,55 @@ void Game::Go()
 
 void Game::UpdateModel()
 {
+	deltaTime += ft.measureTimeSpan();
+	int movingTo = snake.getDirection();
+	
+	if (wnd.kbd.KeyIsPressed('W'))
+	{
+		if (movingTo == SNAKE_MOVING_LEFT || movingTo == SNAKE_MOVING_RIGHT)
+		{
+			snake.setDirection(SNAKE_MOVING_UP);
+			coolOff = false;
+		}		
+	}
+
+	else if (wnd.kbd.KeyIsPressed('S'))
+	{
+		if (movingTo == SNAKE_MOVING_LEFT || movingTo == SNAKE_MOVING_RIGHT)
+		{
+			snake.setDirection(SNAKE_MOVING_DOWN);
+			coolOff = false;
+		}
+	}
+
+	else if (wnd.kbd.KeyIsPressed('A'))
+	{
+		if (movingTo == SNAKE_MOVING_UP || movingTo == SNAKE_MOVING_DOWN)
+		{
+			snake.setDirection(SNAKE_MOVING_LEFT);
+			coolOff = false;
+		}
+	}
+
+	else if (wnd.kbd.KeyIsPressed('D'))
+	{
+		if (movingTo == SNAKE_MOVING_UP || movingTo == SNAKE_MOVING_DOWN)
+		{
+			snake.setDirection(SNAKE_MOVING_RIGHT);
+			coolOff = false;
+		}
+	}	
+
+	if (deltaTime >= velocity) {		
+		deltaTime -= velocity;
+		coolOff = true;	
+		board.moveSnake(snake, velocity);
+	}
+
+	
 }
 
 void Game::ComposeFrame()
 {
+	board.drawBoard(gfx);
 }

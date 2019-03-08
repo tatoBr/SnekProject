@@ -23,6 +23,8 @@
 #include "Keyboard.h"
 #include "Mouse.h"
 #include "Graphics.h"
+#include "Board.h"
+#include "FrameTimer.h"
 
 class Game
 {
@@ -42,5 +44,11 @@ private:
 	Graphics gfx;
 	/********************************/
 	/*  User Variables              */
+	Board board;
+	Snake snake;
+	FrameTimer ft;
+	bool coolOff = true;
+	float deltaTime = 0.0f;
+	float velocity = 0.4f;
 	/********************************/
 };
