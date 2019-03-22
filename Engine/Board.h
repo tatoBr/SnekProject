@@ -38,7 +38,7 @@ public:
 
 	//*****************Snake Controls*****************//
 	void setSnakeOnBoard(const Snake & snk);
-	void moveSnake(Snake & snk, float & velocity);
+	bool moveSnake(Snake & snk, float & velocity);
 	
 private:	
 

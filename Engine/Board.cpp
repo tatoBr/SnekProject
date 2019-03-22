@@ -42,7 +42,7 @@ void Board::setSnakeOnBoard(const Snake & snk)
 	}
 	activateCell(snk.getTail());
 }
-void Board::moveSnake(Snake & snk, float & velocity)
+bool Board::moveSnake(Snake & snk, float & velocity)
 {
 	switch (snakeNextCellLocation(snk))
 	{
@@ -50,13 +50,16 @@ void Board::moveSnake(Snake & snk, float & velocity)
 		deactivateCell((int)snk.getTail().xCoord, (int)snk.getTail().yCoord);
 		snk.move();		
 		setSnakeOnBoard(snk);
+		return false;
 		break;
 
 	case CellType::Snk:
+		return true;
 		break;
 
 	case CellType::SnkHead:		
 		snk.move();
+		return false;
 		break;		
 
 	case CellType::Food:
@@ -64,7 +67,8 @@ void Board::moveSnake(Snake & snk, float & velocity)
 		snk.grow();
 		snk.move();
 		setSnakeOnBoard(snk);
-		setFoodOnBoard();		
+		setFoodOnBoard();	
+		return false;
 		break;
 
 	case CellType::Poison:
@@ -72,9 +76,15 @@ void Board::moveSnake(Snake & snk, float & velocity)
 		snk.move();
 		setSnakeOnBoard(snk);
 		velocity -= 0.01f;
+		return false;
+		break;
+
+	case CellType::Obstacle:
+		return true;
 		break;
 
 	default:
+		return false;
 		break;
 	}	
 }
