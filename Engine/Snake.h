@@ -3,13 +3,17 @@
 #include "Colors.h"
 
 #define SNAKE_MAX_SIZE 1536
-#define SNAKE_MOVING_UP 0
-#define SNAKE_MOVING_DOWN 1
-#define SNAKE_MOVING_LEFT 2
-#define SNAKE_MOVING_RIGHT 3
 
 class Snake {
 public:
+	const enum Direction : char
+	{
+		UP,
+		DOWN,
+		LEFT,
+		RIGHT
+	};
+	
 	struct Segment{
 		int xCoord;
 		int yCoord;
@@ -30,10 +34,10 @@ public:
 	void move();
 
 	//Define a direção que a Serpente ira se mover (up / down / left / right)
-	void setDirection(const int dir);
+	void setDirection(Direction  dir_);
 
 	//Retorna a direção em que a Serpente e está se movendo (up / down / left / right)
-	int getDirection() const;
+	Direction getDirection() const;
 
 	//Retorna o compirmento da Serpente
 	int getSnkLenght() const;
@@ -65,7 +69,7 @@ private:
 	const int startXCoord; //Cordenada X inicial. Posição da cabeça da serpente
 	const int startYCoord; //Cordenada Y inicial. Posição da cabeça da serpente
 	int lastBodyIndex; //Tamanho do corpo da Serpente
-	int movDirection = SNAKE_MOVING_UP; //Direção em que a Serpente esta se movendo
+	Direction direction = Direction::UP; //Direção em que a Serpente esta se movendo
 	const int offBoard = -10; //posição dos segmentos não fazem parte da Serpente	
 
 	//Inicializa os Segmentos do Corpo 
