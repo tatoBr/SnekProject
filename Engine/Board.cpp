@@ -1,113 +1,149 @@
 #include "Board.h"
 
-Board::Board(float _width, float _height)
-	:
-	width((_width / BOARD_N_COLS) * BOARD_N_COLS),
-	height((_height / BOARD_N_LINS) * BOARD_N_LINS),
+Board::Board(const int tileSize)	
+{
+	const int pxHeight = (Graphics::ScreenHeight - (2 * (Graphics::ScreenHeight / 6)));
+
+	height = ( pxHeight / tileSize )* tileSize;
+	width = height;
+
+	boardY = ( Graphics::ScreenHeight / 6 );
+	boardX = (( Graphics::ScreenWidth - width ) / 2 );
+
+	nHorTiles = width / tileSize;
+	nVerTiles = height / tileSize;
+
+	cells = new Cell[nHorTiles * nVerTiles];
+}
+Board::Board(int _nCols, int _nLines)
+	:	
+	nHorTiles(( _nCols > maxColumns ) ? maxColumns : (( _nCols < minColumns ) ? minColumns : _nCols )),
+	nVerTiles(( _nLines > maxLines ) ? maxLines : (( _nLines < minLines ) ? minLines : _nLines )),
+	
+	width( nHorTiles * tileSize ),
+	height( nVerTiles * tileSize),
 
 	boardX((Graphics::ScreenWidth - width) / 2),
-	boardY((Graphics::ScreenHeight - height) / 2),
+	boardY(tileSize * 6),
 
-	cellW(width / BOARD_N_COLS),
-	cellH(height / BOARD_N_LINS)
-{
+	cells(new Cell[nHorTiles * nVerTiles])
+{}
+
+void Board::startUpBoard(const Snake& snk, const int nObst_, const int nPoison_)
+{	
 	startUpCells();
+	setSnakeOnBoard(snk);	
+	setObstaclesOnBoard(nObst_);
+	setPoisonOnBoard(nPoison_);
 	setFoodOnBoard();
-	setPoisonOnBoard();
 }
 
-void Board::drawBoard(Graphics & gfx)
+void Board::drawBoard(Graphics & gfx, const Palette & palette, const int keyFrame) const
 {	
-	for (int line = 0; line < BOARD_N_LINS; line++)
+	for (int line = 0; line < nVerTiles; line++)
 	{
-		for (int column = 0; column < BOARD_N_COLS; column++)
+		for (int column = 0; column < nHorTiles; column++)
 		{
-			const int index = line * BOARD_N_COLS + column;
-			if (cells[index].type != CellType::Empty)
-				drawCell(gfx, cells[index]);
+			const int index = line * nHorTiles + column;
+			
+				drawCell(gfx, cells[index], palette, keyFrame);
 		}
 	}
 
-	drawBorder(gfx);
+	//drawBorder(gfx);
 }
 
 
 //*****************Snake Controls*****************//
 void Board::setSnakeOnBoard(const Snake & snk)
-{
-	activateCell(CellType::SnkHead, (int)snk.getHead().xCoord, (int)snk.getHead().yCoord, snk.getHead().color);
-	for (int i = 0; i <= snk.getSnkLenght(); i++)
+{	
+	for (auto * currentSeg = snk.tail; currentSeg != nullptr; currentSeg = currentSeg->getNext())
 	{
-		activateCell(snk.body[i]);
+		const Snake::Vector v = currentSeg->getPosition();
+		const Color c = currentSeg->getColor();
+		activateCell(CellType::Snk, v.x, v.y, c);
 	}
-	activateCell(snk.getTail());
 }
-bool Board::moveSnake(Snake & snk, float & velocity)
+void Board::eraseSnkFromBoard(const Snake & snk)
+{	
+	for (auto * currentSeg = snk.tail; currentSeg != nullptr; currentSeg = currentSeg->getNext())
+	{
+		deactivateCell(currentSeg->getPosition().x, currentSeg->getPosition().y);
+	}
+	
+}
+Board::CellType Board::moveSnake( Snake & snk )
 {
-	switch (snakeNextCellLocation(snk))
+	CellType ct = snakeNextCellLocation(snk);
+	switch (ct)
 	{
 	case CellType::Empty:
-		deactivateCell((int)snk.getTail().xCoord, (int)snk.getTail().yCoord);
+		deactivateCell(snk.tail->getPosition().x, snk.tail->getPosition().y);
 		snk.move();		
-		setSnakeOnBoard(snk);
-		return false;
+		setSnakeOnBoard(snk);		
 		break;
 
-	case CellType::Snk:
-		return true;
+	case CellType::Snk:		
 		break;
 
 	case CellType::SnkHead:		
-		snk.move();
-		return false;
+		snk.move();		
 		break;		
 
 	case CellType::Food:
-		deactivateCell(snk.getTail().xCoord, snk.getTail().yCoord);
+		//deactivateCell(snk.tail->getPosition().x, snk.tail->getPosition().y);
 		snk.grow();
 		snk.move();
 		setSnakeOnBoard(snk);
-		setFoodOnBoard();	
-		return false;
+		setFoodOnBoard();		
 		break;
 
 	case CellType::Poison:
-		deactivateCell(snk.getTail().xCoord, snk.getTail().yCoord);
+		deactivateCell(snk.tail->getPosition().x, snk.tail->getPosition().y);
 		snk.move();
-		setSnakeOnBoard(snk);
-		velocity -= 0.01f;
-		return false;
+		setSnakeOnBoard(snk);				
 		break;
 
-	case CellType::Obstacle:
-		return true;
+	case CellType::Obstacle:		
 		break;
 
-	default:
-		return false;
+	default:		
 		break;
-	}	
+	}
+	
+	return ct;
 }
+
+Snake::Vector Board::getCenter()
+{
+	return {nHorTiles / 2, nVerTiles / 2 };
+}
+
+int Board::getWidth() const
+{
+	return width;
+}
+
 
 //*****************Cells Controls*****************//
 void Board::startUpCells()
 {
 	int x, y;
-	for (int line = 0; line < BOARD_N_LINS; line++)
+	for (int line = 0; line < nVerTiles; line++)
 	{
-		for (int column = 0; column < BOARD_N_COLS; column++)
+		for (int column = 0; column < nHorTiles; column++)
 		{
 			CellType type;
 			Color cellColor;
-			const int index = line * BOARD_N_COLS + column;
-			x = boardX + (column * cellW);
-			y = boardY + (line * cellH);
+			const int index = line * nHorTiles + column;
+			x = boardX + (column * tileSize);
+			y = boardY + (line * tileSize);
 			if (line == 0 || column == 0)
 			{
 				type = CellType::OffBoundarie;
 				cellColor = Color(87, 87, 87);
 			}			
-			else if (line == BOARD_N_LINS - 1 || column == BOARD_N_COLS - 1)
+			else if (line == nVerTiles - 1 || column == nHorTiles - 1)
 			{
 				type = CellType::OffBoundarie;
 				cellColor = Color(87, 87, 87);
@@ -123,7 +159,7 @@ void Board::startUpCells()
 }
 void Board::activateCell(const int xIndex, const int yIndex, CellType type)
 {
-	int index = yIndex * BOARD_N_COLS + xIndex;
+	int index = yIndex * nHorTiles + xIndex;
 	cells[index].type = type;
 
 	Color c;
@@ -147,116 +183,158 @@ void Board::activateCell(const int xIndex, const int yIndex, CellType type)
 }
 void Board::activateCell(const CellType type, const int xIndex, const int yIndex, const Color color)
 {
-	int index = yIndex * BOARD_N_COLS + xIndex;
+	int index = yIndex * nHorTiles + xIndex;
 	cells[index].type = type;
 	cells[index].color = color;
-}
-void Board::activateCell(const Snake::Segment seg)
-{
-	int index = int(seg.yCoord) * BOARD_N_COLS + int(seg.xCoord);
-	cells[index].type = CellType::Snk;
-	cells[index].color = seg.color;
 }
 
 void Board::deactivateCell(int xIndex, int yIndex)
 {
-	const int index = yIndex * BOARD_N_COLS + xIndex;
+	const int index = yIndex * nHorTiles + xIndex;
 	cells[index].color = Colors::Black;
 	cells[index].type = CellType::Empty;
 }
 
-void Board::drawCell(Graphics & gfx, Cell cell) const
+void Board::drawCell(Graphics & gfx, Cell cell, const Palette & palette, const int keyFrame) const
 {
-	const int xPos = cell.xPos + 1;
-	const int yPos = cell.yPos + 1;
-	const int width = cellW - 1;
-	const int height = cellH - 1;
+	
+	const int xPos = cell.xPos;
+	const int yPos = cell.yPos;
+	const int width = tileSize - 1;
+	const int height = tileSize - 1;	
+	SpriteCodex::empty(gfx, xPos, yPos, palette.base, palette.shadow, palette.highlight);
 
-	Color c;
 	switch (cell.type)
 	{
 	case CellType::Food:
-		c = Colors::Red;
+		drawFood(keyFrame, gfx, xPos, yPos);
 		break;
 
 	case CellType::Obstacle:
+	case CellType::OffBoundarie:
+		SpriteCodex::Obstacle(gfx, xPos, yPos, palette.base, palette.shadow, palette.highlight);
 		break;
 
 	case CellType::Poison:
-		c = Color(135, 31, 120);
-		break;
-
-	case CellType::OffBoundarie:
-		c = Color(85, 85, 85);
-		break;
-
-	default:
-		c = cell.color;
+		drawPoison(keyFrame, gfx, xPos, yPos);
+		break;		
+	
+	default:		
 		break;
 	}	
 
-	for (int y = yPos; y < yPos + height; y++)
+	if (cell.type != CellType::Poison &&
+		cell.type != CellType::Obstacle &&
+		cell.type != CellType::OffBoundarie &&
+		cell.type != CellType::Food &&
+		cell.type != CellType::Empty)
 	{
-		for (int x = xPos; x < xPos + width; x++) {
-			gfx.PutPixel(x, y, c);
-		}
-	}
-}
-void Board::drawBorder(Graphics & gfx)
-{
-
-	int realWidth = cellW * BOARD_N_COLS;
-	int realHeight = cellH * BOARD_N_LINS;
-	for (int x = boardX; x < boardX + realWidth; x++)
-	{
-		gfx.PutPixel(x, boardY, Colors::White);
-		gfx.PutPixel(x, boardY + realHeight, Colors::White);
-	}
-
-	for (int y = boardY; y < boardY + realHeight; y++)
-	{
-		gfx.PutPixel(boardX, y, Colors::White);
-		gfx.PutPixel(boardX + realWidth, y, Colors::White);
-	}
-}
-
-void Board::setFoodOnBoard()
-{
-	int nx = rand() % BOARD_N_COLS;
-	int ny = rand() % BOARD_N_LINS;
-	int index = ny * BOARD_N_COLS + nx;
-
-	while (cells[index].type != CellType::Empty)
-	{
-		nx = rand() % BOARD_N_COLS;
-		ny = rand() % BOARD_N_LINS;
-		index = ny * BOARD_N_COLS + nx;
-	}
-
-	activateCell(nx, ny, CellType::Food);
-}
-
-void Board::setPoisonOnBoard()
-{
-	for (int line = 0; line < BOARD_N_LINS; line++)
-	{
-		for (int column = 0; column < BOARD_N_COLS; column++)
-		{			
-			const int index = line * BOARD_N_COLS + column;
-
-			if (cells[index].type == CellType::Empty && rand() % 8 == 0)
-			{
-				activateCell(column, line, CellType::Poison);
+		for (int y = yPos; y < yPos + height; y++)
+		{
+			for (int x = xPos; x < xPos + width; x++) {
+				gfx.PutPixel(x, y, cell.color);
 			}
 		}
 	}
 }
 
-Board::CellType Board::snakeNextCellLocation(Snake & snk)
+void Board::drawFood(const int keyFrame, Graphics & gfx, const int x, const int y) const
 {
-	const int nextX = snk.getHead().xCoord + snk.getVelocity().x;
-	const int nextY = snk.getHead().yCoord + snk.getVelocity().y;	
-	const int index = nextY * BOARD_N_COLS + nextX;
+	switch (keyFrame)
+	{
+	case 1:
+		SpriteCodex::fruitLeft(gfx, x, y);
+		break;
+	case 2:
+		SpriteCodex::fruitMiddle(gfx, x, y);
+		break;
+	case 3:
+		SpriteCodex::fruitRight(gfx, x, y);
+		break;
+	default:
+		SpriteCodex::fruitMiddle(gfx, x, y);
+		break;
+	}
+}
+void Board::drawPoison(const int KeyFrame, Graphics & gfx, const int x, const int y) const
+{
+	if (KeyFrame % 2 == 0)
+	{
+		SpriteCodex::poisonUp(gfx, x, y);
+	}
+	else
+	{
+		SpriteCodex::poisonDown(gfx, x, y);
+	}
+}
+
+void Board::setFoodOnBoard()
+{
+	int nx = rand() % nHorTiles;
+	int ny = rand() % nVerTiles;
+	int index = ny * nHorTiles + nx;
+	int sIndex;
+	bool emptySurround = false;
+	
+	while ( !( cells[index].type == CellType::Empty && emptySurround ))
+	{
+		nx = rand() % nHorTiles;
+		ny = rand() % nVerTiles;
+		emptySurround = true;
+		for (int y = ny - 1; y <= ny + 1; y++)
+		{
+			for (int x = nx - 1; x <= nx + 1; x++)
+			{
+				sIndex = y * nHorTiles + x;
+				emptySurround = ( cells[sIndex].type == CellType::Empty ) && emptySurround;
+			}
+		}
+		index = ny * nHorTiles + nx;
+	}
+
+	activateCell(nx, ny, CellType::Food);
+}
+void Board::setObstaclesOnBoard(const int nObst_)
+{
+	for (int i = 0; i < nObst_; i++)
+	{
+		int nx = rand() % nHorTiles;//Gera uma coord x aleatória para posicionar o obstáculo
+		int ny = rand() % nVerTiles;//Gera uma coord y aleatória para posicionar o obstáculo
+		int index = ny * nHorTiles + nx; //indice no array de celulas referente as coordenadas geradas
+
+
+		while (cells[index].type != CellType::Empty) // checa se a celula nas coords geradas esta vazia
+		{
+			nx = rand() % nHorTiles;
+			ny = rand() % nVerTiles;
+			index = ny * nHorTiles + nx;
+		}
+		activateCell(nx, ny, CellType::Obstacle); //ativa a celula na coord gerada
+	}	
+}
+void Board::setPoisonOnBoard(const int nPoison_)
+{
+	for (int i = 0; i < nPoison_; i++)
+	{
+		int nx = rand() % nHorTiles;//Gera uma coord x aleatória para posicionar o obstáculo
+		int ny = rand() % nVerTiles;//Gera uma coord y aleatória para posicionar o obstáculo
+		int index = ny * nHorTiles + nx; //indice no array de celulas referente as coordenadas geradas
+
+		while (cells[index].type != CellType::Empty) // checa se a celula nas coords geradas esta vazia
+		{
+			nx = rand() % nHorTiles;
+			ny = rand() % nVerTiles;
+			index = ny * nHorTiles + nx;
+		}
+		activateCell(nx, ny, CellType::Poison); //ativa a celula na coord gerada
+	}
+}
+
+Board::CellType Board::snakeNextCellLocation(Snake & snk)
+{	
+	const int nextX = snk.getHead()->getPosition().x + snk.getVelocity().x;
+	const int nextY = snk.getHead()->getPosition().y + snk.getVelocity().y;
+	const int index = nextY * nHorTiles + nextX;
 	CellType c = cells[index].type;
 	return cells[index].type;
 }

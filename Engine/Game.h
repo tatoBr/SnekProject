@@ -25,30 +25,169 @@
 #include "Graphics.h"
 #include "Board.h"
 #include "FrameTimer.h"
+#include "SpriteCodex.h"
+#include "CharsCodex.h"
+#include "HeadsUpDisplay.h"
+#include "StartMenu.h"
 
 class Game
 {
+	static constexpr int nPalettes = 10; //Número de paletta de cores
+	static constexpr Palette palettes[] = {
+		//pallet 0:
+		{
+			{ 0, 84, 84 },//shadow		
+			{ 0, 186, 186 },//highlight
+			{ 0, 132, 132 }//color
+		},
+
+		//pallet 1:
+		{
+			{ 24, 0, 96 },//shadow
+			{ 0, 120, 255 },//highlight
+			{ 66, 0, 255 }//color
+		},
+
+		//pallet 2:
+		{
+			{ 0, 96, 96 },//shadow
+			{ 0, 196, 196 },//highlight
+			{ 0, 148, 148 }//color
+		},
+
+		//pallet 3:
+		{
+			{ 112, 98, 0 },//shadow
+			{ 164, 144, 0 },//highlight
+			{ 132, 116, 0 }//color
+		},
+
+		//pallet 4:
+		{
+			{ 0, 98, 0 },//shadow
+			{ 0, 186, 0 },//highlight
+			{ 0, 165, 0 }//color
+		},
+
+		//pallet 5:
+		{
+			{ 0, 66, 33 },//shadow
+			{ 255, 198, 66 },//highlight
+			{ 132, 132, 0 }//color
+		},
+
+		//pallet 6:
+		{
+			{ 0, 66, 0 },//shadow
+			{ 66, 198, 66 },//highlight
+			{ 0, 165, 0 }//color
+		},
+
+		//pallet 7:
+		{
+			{ 64, 64, 64 },//shadow
+			{ 196, 196, 196 },//highlight
+			{ 132, 132, 132 }//color
+		},
+
+		//pallet 8:
+		{
+			{ 0, 64, 148 },//shadow
+			{ 0, 198, 255 },//highlight
+			{ 99, 165, 255 }//color
+		},
+
+		//pallet 9:
+		{
+			{ 232, 33, 0 },//shadow
+			{ 255, 165, 66 },//highlight
+			{ 198, 16, 0 }//color
+		}
+	};
 public:
 	Game( class MainWindow& wnd );
+	~Game()
+	{
+		delete ft;
+		delete startmenu;
+		delete board;
+		delete hud;
+		delete screenArea;
+
+		ft = nullptr;
+		startmenu = nullptr;
+		board = nullptr;
+		hud = nullptr;
+		screenArea = nullptr;
+	}
 	Game( const Game& ) = delete;
 	Game& operator=( const Game& ) = delete;
 	void Go();
 private:
+	enum GameStatus : char{
+		TitleScreen,
+		StartMenu,		
+		CountDown,
+		GameRunning,
+		PauseMenu,
+		GameOver
+	};
+	void updateTittleScreen();
+	void composeTittleScreen();
+
+	void updateStartMenu();
+	void composeStartMenu();
+
+	void updateCountDown();
+	void composeCountDown();
+
+	void updateRunning();
+	void composeRunning();
+
 	void ComposeFrame();
 	void UpdateModel();
 	/********************************/
 	/*  User Functions              */
+	void startRound();//começa um novo round do jogo
+	void finishRound();//finalina o round do jogo;
+	void stageUp();	
+	
 	/********************************/
 private:
 	MainWindow& wnd;
 	Graphics gfx;
 	/********************************/
 	/*  User Variables              */
-	Board board;
-	Snake snake;
-	FrameTimer ft;
-	bool coolOff = true;
+	HeadsUpDisplay * hud = nullptr;//Aloca memoria dinamica para hud
+	class StartMenu * startmenu = nullptr;//Aloca memoria dinamica para o startmenu
+	Board * board = nullptr;//Aloca Memoria Dinamica para Board
+	Snake * snake = nullptr;//Aloca Memoria Dinamica para snake
+
+	Keyboard::Event ke;
+	Mouse::Event me;
+
+	/****************************** Variaveis e Metodos de controle de Tempo**************************************/
+	FrameTimer * ft = new FrameTimer();
+	std::chrono::steady_clock::time_point countStartPoint; //@countStartPoint marcador que guarda o momento que a contagem se inicia
+	bool isInCountDown = false;//@isInCountDown flag que marca se o jogo está em contagem regressiva;
+	int countDownCounter = 0;//@countDownCounter Contador da Contagem Regressiva
 	float deltaTime = 0.0f;
-	float velocity = 0.4f;
+	float velocity = 0.0f;
+	int keyFrame = 0;	
+
+	int mouseX;
+	int mouseY;
+
+	GameStatus gs = GameStatus::TitleScreen;	
+	Rect * screenArea = new Rect(0, 0, Graphics::ScreenWidth, Graphics::ScreenHeight);
+
+	bool inputConsumed = true;
+	
+	
+	float startVel = velocity;
+
+	int comboCounter = 1;
+	
+	
 	/********************************/
 };

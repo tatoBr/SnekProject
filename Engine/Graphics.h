@@ -24,9 +24,13 @@
 #include <wrl.h>
 #include "ChiliException.h"
 #include "Colors.h"
+#include "Palette.h"
+#include "Rect.h"
 
 class Graphics
 {
+	const std::string optionFile = "options.txt";
+	const std::string saveFile = "save.txt";
 public:
 	class Exception : public ChiliException
 	{
