@@ -5,13 +5,23 @@ HeadsUpDisplay::HeadsUpDisplay(int _x, int _y)
 	hud_x(_x),
 	hud_y(_y)
 {}
+HeadsUpDisplay::HeadsUpDisplay(const int pxWidth)
+	:
+	hud_width(pxWidth / tileSize * tileSize),
+	hud_x( ( Graphics::ScreenWidth - hud_width ) / 2)
+{}
 
-void HeadsUpDisplay::drawHud(Graphics & gfx)
+void HeadsUpDisplay::drawHud(Graphics & gfx, const Palette & palette) const
 {
 	drawStageLabel(gfx);
 	drawScoreLabel(gfx);
 	drawLivesLabel(gfx);
-	drawBorder(gfx);
+	drawBorder(gfx, palette);
+}
+
+void HeadsUpDisplay::updateScore(const int  sum_)
+{
+	score += sum_;
 }
 
 void HeadsUpDisplay::setScore(const int score_)
@@ -19,95 +29,93 @@ void HeadsUpDisplay::setScore(const int score_)
 	score = score_;
 }
 
+void HeadsUpDisplay::dropLife()
+{
+	lives--;
+}
+
+int HeadsUpDisplay::getLifes() const
+{
+	return lives;
+}
+
+void HeadsUpDisplay::stageUp()
+{
+	stage++;
+}
+
 void HeadsUpDisplay::setStage(const int stage_)
 {
 	stage = stage_;
 }
 
-void HeadsUpDisplay::setLives(const int lives_)
+void HeadsUpDisplay::resetStage()
+{
+	stage = 0;
+}
+
+int HeadsUpDisplay::getStage()
+{
+	return stage;
+}
+
+void HeadsUpDisplay::setLifes(const int lives_)
 {
 	lives = lives_;
 }
 
-void HeadsUpDisplay::drawStageLabel(Graphics & gfx)
+void HeadsUpDisplay::drawStageLabel(Graphics & gfx) const
 {
 	std::string label = "STAGE ";
 
-	const int labelx = hud_x + border + padding;
-	const int labely = hud_y + border + padding;
+	const int labelx = hud_x + tileSize * 2;
+	const int labely = tileSize * 2;
 
-	const int stageX = labelx + (CharsCodex::CHAR_SIZE * label.size());
+	const int stageX = labelx + (CharsCodex::CHAR_SIZE * (int)label.size());
 	const int stageY = labely;
 
 	CharsCodex::drawString( label, labelx, labely, gfx, { 255, 255,0 } );
 	CharsCodex::drawNumber( stage, stageX, stageY, gfx, { 255, 255, 255 } );	
 }
 
-void HeadsUpDisplay::drawScoreLabel(Graphics & gfx)
+void HeadsUpDisplay::drawScoreLabel(Graphics & gfx) const
 {
 	std::string label = "SCORE ";
 
-	const int labelx = hud_x + border + padding;
-	const int labely = hud_y + border + padding + lHeight + padding;
+	const int labelx = hud_x + tileSize * 2;
+	const int labely = tileSize * 4;
 
-	const int valueX = labelx + (CharsCodex::CHAR_SIZE * label.size());
+	const int valueX = labelx + (CharsCodex::CHAR_SIZE * (int)label.size());
 	const int valueY = labely;
 
 	CharsCodex::drawString(label, labelx, labely, gfx, { 255, 255,0 });
 	CharsCodex::drawNumber(score, valueX, valueY, gfx, { 255, 255, 255 });
 }
 
-void HeadsUpDisplay::drawLivesLabel(Graphics & gfx)
+void HeadsUpDisplay::drawLivesLabel(Graphics & gfx) const
 {
 	std::string label = "LIVES ";
 
-	const int labelx = ( ( hud_x + hud_width ) - padding - CharsCodex::CHAR_SIZE ) - ( label.size() * CharsCodex::CHAR_SIZE ) - ( 9 * CharsCodex::CHAR_SIZE );
-	const int labely = hud_y + border + padding;
+	const int labelx = ( hud_x + hud_width ) - ( tileSize * 5 );
+	const int labely = tileSize * 2;
 
-	const int valueX = labelx + (CharsCodex::CHAR_SIZE * label.size());
+	const int valueX = labelx + 2 * tileSize;
 	const int valueY = labely;
 
-	CharsCodex::drawString(label, labelx, labely, gfx, { 255, 255,0 });
-	for (int i = 0; i < lives; i++)
-	{
-		int x = valueX + (i * CharsCodex::CHAR_SIZE);
-
-		if (i >= 8)
-		{
-			SpriteCodex::drawTileHeartPlus(gfx, x, valueY);
-			break;
-		}
-		else {
-			SpriteCodex::drawTileHeart(gfx, x, valueY);
-		}
-	}
-	
-	
+	SpriteCodex::live(gfx, labelx, labely);
+	CharsCodex::drawString("X", labelx + tileSize, labely, gfx, Colors::White);
+	CharsCodex::drawNumber(lives, valueX, valueY, gfx, Colors::White);
 }
 
-void HeadsUpDisplay::drawBorder(Graphics & gfx)
+void HeadsUpDisplay::drawBorder(Graphics & gfx, const Palette & palette) const
 {
-	const int npx = hud_width / padding - 2; //n de quadrados que formam a borda na horizontal
-	const int npy = hud_height / padding;//n de quadrados que formam a borda na vertical
-
-	for (int y = 0; y < npy; y++)
+	for (int x = hud_x; x < hud_x + hud_width; x += tileSize)
 	{
-		const int xi = hud_x;
-		const int xii = ( hud_x + hud_width ) -  padding * 3 ;
-		const int cy = hud_y +  ( y * padding );
-		gfx.drawSquare(xi + 1 , cy + 1, padding - 1, { 128, 128, 128 } );
-		gfx.drawSquare(xii + 1, cy + 1, padding - 1, { 128, 128, 128 });
+		SpriteCodex::Obstacle(gfx, x, 0, palette.base, palette.shadow, palette.highlight);
 	}
-
-	for (int x = 0; x < npx; x++)
+	for (int y = 0; y < hud_height; y += tileSize)
 	{
-		const int yi = hud_y;
-		const int yii = hud_y + hud_height;
-		const int cx = hud_x +  ( x * padding );
-
-		gfx.drawSquare(cx + 1, yi + 1, padding - 1, { 128, 128, 128 });
-		gfx.drawSquare(cx + 1, yii + 1, padding - 1, { 128, 128, 128 });
+		SpriteCodex::Obstacle(gfx, hud_x, y, palette.base, palette.shadow, palette.highlight);
+		SpriteCodex::Obstacle(gfx, hud_x + hud_width - tileSize, y, palette.base, palette.shadow, palette.highlight);
 	}
-
-
 }
