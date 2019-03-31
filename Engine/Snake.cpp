@@ -5,35 +5,34 @@ Snake::Snake(int _startX, int _startY)
 	startXCoord(_startX),
 	startYCoord(_startY)
 {
-
+	InitializeSnake();
 }
 
 /*************Public Functions***************/
 void Snake::InitializeSnake()
-{
-	lastBodyIndex = 0;	
-	setDirection( Direction::UP );
-	head = { startXCoord, startYCoord, Color{ 205, 225, 34 } };
-	InitializeBody(startXCoord, startYCoord + 1);
-	tail = { startXCoord, body[lastBodyIndex].yCoord + 1,{ 0, 96, 0 } };
+{		
+	if (tail != nullptr)
+	{
+		delete tail;
+		tail = nullptr;
+	}
+	setDirection( Direction::UP );	
+	InitializeBody(startXCoord, startYCoord);	
 }
 
 void Snake::move()
 {
-	tail.xCoord = body[lastBodyIndex].xCoord;
-	tail.yCoord = body[lastBodyIndex].yCoord;
-
-	for (int i = lastBodyIndex; i > 0; i--)
+	Segment * currentSeg = tail;
+	while (currentSeg->getNext() != nullptr)
 	{
-		body[i].xCoord = body[i - 1].xCoord;
-		body[i].yCoord = body[i - 1].yCoord;
+		Vector v = currentSeg->getNext()->getPosition();
+		currentSeg->setPosition({ v.x, v.y });
+		currentSeg = currentSeg->getNext();
 	}
 
-	body[0].xCoord = head.xCoord;
-	body[0].yCoord = head.yCoord;
+	Vector pos = head->getPosition();
 
-	head.xCoord += velocity.x;
-	head.yCoord += velocity.y;
+	head->setPosition({ pos.x + velocity.x, pos.y + velocity.y });
 }
 
 void Snake::setDirection(Direction  dir_)
@@ -42,19 +41,23 @@ void Snake::setDirection(Direction  dir_)
 	switch (direction)
 	{
 	case Direction::UP:
-		velocity = { 0, -1 };		
+		velocity = { 0, -1 };
+		axis = Direction::VERTICALLY;
 		break;
 
 	case Direction::DOWN:
-		velocity = { 0, 1 };		
+		velocity = { 0, 1 };
+		axis = Direction::VERTICALLY;
 		break;
 	
 	case Direction::LEFT:
-		velocity = { -1, 0 };		
+		velocity = { -1, 0 };	
+		axis = Direction::HORIZOLTALLY;
 		break;
 
 	case Direction::RIGHT:
-		velocity = { 1, 0 };		
+		velocity = { 1, 0 };
+		axis = Direction::HORIZOLTALLY;
 		break;
 
 	default:
@@ -65,40 +68,42 @@ Snake::Direction Snake::getDirection() const
 {
 	return direction;
 }
+Snake::Direction Snake::getAxis() const
+{
+	return axis;
+}
 int Snake::getSnkLenght() const
 {
-	return lastBodyIndex;
+	return tail->getSegmentCount();
 }
 void Snake::grow()
 {
-	lastBodyIndex++;
+	Vector nsCoords = tail->getPosition();//@nsCoords coordenadas do novo segmento	
+
+	auto * nt = new Segment(nsCoords.x, nsCoords.y, bodyColors[tail->getSegmentCount() % 5]);
+	nt->connect(tail);
+	tail = nt;
 }
 
-Snake::Segment Snake::getHead() const
-{
+Snake::Segment * Snake::getHead() const
+{	
 	return head;
 }
-Snake::Segment Snake::getTail() const
-{
-	return tail;
-}
+
 Snake::Vector Snake::getVelocity() const
 {
 	return velocity;
 }
 
-
 /*************Private Functions***************/
 void Snake::InitializeBody(const int _xCoord, const int _yCoord)
-{	
-	int nx = _xCoord, ny = _yCoord;
-	for (int i = 0; i < SNAKE_MAX_SIZE; i++)
-	{		
-		if (i <= lastBodyIndex) {			
-			body[i] = { nx, ny, bodyColors[i % 5] };
-			ny += 1;
-		}
-		else body[i] = { offBoard, offBoard, bodyColors[i % 5] };
+{
+	tail = new Segment(_xCoord, _yCoord, bodyColors[0]);
+	head = tail;	
+	for (int i = 1; i < segCount; i++)
+	{
+		head->connect(new Segment(_xCoord, _yCoord - i, bodyColors[i % 5]));
+		head = head->getNext();
 	}
 }
 
